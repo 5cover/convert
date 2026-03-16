@@ -57,4 +57,4 @@ jobs:
             release/*.zip
             release/*.snap
             release/*.deb
-          generate_release_notes: true
+          body: "This release contains offline Electron builds of convert.to.it, built from the latest commit on the `master` branch."
