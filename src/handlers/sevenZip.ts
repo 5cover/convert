@@ -18,8 +18,11 @@ class sevenZipHandler implements FormatHandler {
 
   public supportAnyInput: boolean = true;
 
+  #tarCompressedFormats: string[] = [];
+
   async init () {
     this.supportedFormats = [];
+    this.#tarCompressedFormats = [];
 
     const stdout: number[] = [];
     const sevenZip = await SevenZip({
@@ -47,28 +50,40 @@ class sevenZipHandler implements FormatHandler {
       const [flags, name, extension, ...extra] = formatLine.trim().split(/ +/);
 
       if (name === "Hash") continue;
-      // 7z doesnt handle tar or tar attached formats well 
-      if (extension === "tar" || extra.includes("(.tar)")) continue;
-
       const mimeType = normalizeMimeType(mime.getType(extension) || `application/${extension}`);
+      let displayName = `${name} archive`;
+      let format = extension;
+    
+      if (extra.includes("(.tar)")) { 
+        // compressed formats will be only tar for now
+        this.#tarCompressedFormats.push(name); 
+        displayName = `${name} compressed tar archive`;
+        format = `tar.${extension}`;
+      } 
+
       this.supportedFormats.push({
-        name: `${name} Archive`, // we cant really do better than that
-        format: extension,
+        name: displayName,
+        format,
         extension,
         mime: mimeType,
         from: true,
         to: flags.includes("C"),
         internal: name,
         category: Category.ARCHIVE,
-        lossless: false // archive metadata is too complicated
+        lossless: false, // archive metadata is too complicated
       });
     }
 
-    // quick hack to avoid big penalty for zip being down the list
-    const zipIndex = this.supportedFormats.findIndex(format => format.internal === "zip");
-    if (zipIndex === -1) throw new Error("7z does not have zip format?");
-    const zip = this.supportedFormats.splice(zipIndex, 1);
-    this.supportedFormats.unshift(...zip);
+    // push zip and tar up the list 
+    const priority = ["tar", "zip"];
+    const prioritized = [];
+    for (const format of priority) {
+      prioritized.push(this.supportedFormats.find(f => f.internal === format)!);
+    }
+    this.supportedFormats = [
+      ...prioritized,
+      ...this.supportedFormats.filter(f => !priority.includes(f.internal))
+    ];
 
     this.ready = true;
   }
@@ -82,6 +97,39 @@ class sevenZipHandler implements FormatHandler {
 
     if (!this.supportedFormats.some(format => format.to && format.internal === outputFormat.internal)) {
       throw new Error(`sevenZipHandler cannot convert to ${outputFormat.mime}`);
+    }
+
+    // handle compressed tars
+    if (this.#tarCompressedFormats.includes(inputFormat.internal) 
+      || this.#tarCompressedFormats.includes(outputFormat.internal)) {
+
+      if (outputFormat.internal === "tar") {
+        for (const inputFile of inputFiles) {
+          const sevenZip = await SevenZip(defaultSevenZipOptions);
+
+          sevenZip.FS.writeFile(inputFile.name, inputFile.bytes);
+          sevenZip.callMain(["x", inputFile.name]);
+
+          const name = inputFile.name.replace(/\.[^.]+$/, "");
+          const bytes = sevenZip.FS.readFile(name);
+          outputFiles.push({ bytes, name });
+        }
+      } else if (inputFormat.internal === "tar") {
+        for (const inputFile of inputFiles) {
+          const sevenZip = await SevenZip(defaultSevenZipOptions);
+          sevenZip.FS.writeFile(inputFile.name, inputFile.bytes);
+
+          const name = inputFile.name + `.${outputFormat.extension}`;
+          sevenZip.callMain(["a", name, inputFile.name]);
+
+          const bytes = sevenZip.FS.readFile(name);
+          outputFiles.push({ bytes, name });
+        }
+      } else {
+        throw new Error(`sevenZipHandler cannot convert from ${inputFormat.mime} to ${outputFormat.mime}`);
+      }
+      
+      return outputFiles;
     }
 
     if (this.supportedFormats.some(format => format.internal === inputFormat.internal)) {
