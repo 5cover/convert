@@ -9,7 +9,8 @@
       "DOM.Iterable"
     ],
     "types": [
-      "vite/client"
+      "vite/client",
+      "bun"
     ],
     "skipLibCheck": true,
     /* Bundler mode */
@@ -35,8 +36,12 @@
      */
     "baseUrl": ".",
     "paths": {
-      "qoi-fu": ["./src/handlers/qoi-fu/transpiled/QOI.js"],
-      "qoa-fu": ["./src/handlers/qoa-fu/transpiled/QOA.js"]
+      "qoi-fu": [
+        "./src/handlers/qoi-fu/transpiled/QOI.js"
+      ],
+      "qoa-fu": [
+        "./src/handlers/qoa-fu/transpiled/QOA.js"
+      ]
     }
   },
   "include": [
