@@ -1171,5 +1171,44 @@ A.C,1,1
 ,1
 ,1`,
         ],
+        [
+            'csv escaping comma',
+            {
+                plain: 'alpha',
+                comma: 'hello,world',
+                nested: {
+                    value: 'a,b',
+                },
+            },
+            {
+                header: ['key', 'value'],
+                data: [
+                    ['plain', 'alpha'],
+                    ['comma', 'hello,world'],
+                    ['nested.value', 'a,b'],
+                ],
+            },
+            `key,value
+plain,alpha
+comma,"hello,world"
+nested.value,"a,b"`,
+        ],
+        [
+            'csv escaping quotes',
+            {
+                quote: 'say "hi"',
+                both: 'x, "y"',
+            },
+            {
+                header: ['key', 'value'],
+                data: [
+                    ['quote', 'say "hi"'],
+                    ['both', 'x, "y"'],
+                ],
+            },
+            `key,value
+quote,"say ""hi"""
+both,"x, ""y"""`,
+        ],
     ];
 }

@@ -1,10 +1,5 @@
-// future implementation of json converison
-// todo:
-// - implement format handler
-// - finish writing pr
-
 import CommonFormats from 'src/CommonFormats.ts';
-import { FormatDefinition, type FileData, type FileFormat, type FormatHandler } from '../FormatHandler.ts';
+import { type FileData, type FileFormat, type FormatHandler } from '../FormatHandler.ts';
 
 export type Flat = { header: string[]; data: string[][] };
 type SolverState = { rows: number; cols: number; K: number[] };
@@ -42,9 +37,10 @@ export default class csvHandler implements FormatHandler {
 }
 
 export function toCsv(x: Flat, sep = ',', quot = '"') {
-    function csvrow(arr: string[]) {
-        return arr.map(x => (x.includes(sep) ? `${quot}${sep.replace(quot, quot + quot)}${quot}` : x)).join(sep);
-    }
+    const csvrow = (arr: string[]) =>
+        arr
+            .map(s => (s.includes(sep) || s.includes(quot) ? `${quot}${s.replaceAll(quot, quot + quot)}${quot}` : s))
+            .join(sep);
     return [x.header, ...x.data].map(row => csvrow(row)).join('\n');
 }
 
