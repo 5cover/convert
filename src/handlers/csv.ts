@@ -30,7 +30,6 @@ export default class csvHandler implements FormatHandler {
         return inputFiles.map(f => {
             const baseName = f.name.replace(/\.[^.]+$/u, '');
             const json = decoder.decode(f.bytes);
-            console.log(f.name, '===', json)
             const data = JSON.parse(json) as unknown;
             const flat = flatten(data);
             const csv = toCsv(flat);
